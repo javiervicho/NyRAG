@@ -1,6 +1,21 @@
-# nyrag
+# NyRAG
 
-A simple tool for building RAG applications by crawling websites or processing documents, then deploying to Vespa for semantic search with an integrated chat UI.
+A simple tool for building RAG applications by crawling websites or processing documents, then deploying to Vespa for hybrid search with an integrated chat UI.
+
+![NyRAG Chat UI](assets/ui.png)
+
+## How It Works
+
+When a user asks a question, NyRAG performs a multi-stage retrieval process:
+
+1. **Query Enhancement**: An LLM generates additional search queries based on the user's question and initial context to improve retrieval coverage
+2. **Embedding Generation**: Each query is converted to embeddings using the configured SentenceTransformer model
+3. **Vespa Search**: Queries are executed against Vespa using nearestNeighbor search with the `best_chunk_score` ranking profile to find the most relevant document chunks
+4. **Chunk Fusion**: Results from all queries are aggregated, deduplicated, and ranked by score to select the top-k most relevant chunks
+5. **Answer Generation**: The retrieved context is sent to an LLM (via OpenRouter) which generates a grounded answer based only on the provided chunks
+
+This multi-query RAG approach with chunk-level retrieval ensures answers are comprehensive and grounded in your actual content, whether from crawled websites or processed documents.
+
 
 ## Installation
 

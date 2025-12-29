@@ -1,8 +1,4 @@
 """Tests for the crawly module."""
-from unittest.mock import Mock, patch
-from urllib.parse import urlparse
-
-import pytest
 
 from nyrag.crawly.crawly import Crawly, WebsiteItem
 from nyrag.crawly.user_agents import get_user_agent
@@ -29,87 +25,60 @@ class TestCrawly:
         """Test Crawly with custom allowed domains."""
         spider = Crawly(
             start_urls="https://example.com",
-            allowed_domains=["example.com", "test.com"]
+            allowed_domains=["example.com", "test.com"],
         )
         assert "example.com" in spider.allowed_domains
         assert "test.com" in spider.allowed_domains
 
     def test_exclude_urls(self):
         """Test Crawly with excluded URLs."""
-        spider = Crawly(
-            start_urls="https://example.com",
-            exclude_urls=[r".*/admin/.*", r".*/login"]
-        )
+        spider = Crawly(start_urls="https://example.com", exclude_urls=[r".*/admin/.*", r".*/login"])
         assert spider.exclude_urls == [r".*/admin/.*", r".*/login"]
 
     def test_respect_robots_txt_false(self):
         """Test Crawly with robots.txt disabled."""
-        spider = Crawly(
-            start_urls="https://example.com",
-            respect_robots_txt=False
-        )
+        spider = Crawly(start_urls="https://example.com", respect_robots_txt=False)
         assert spider.custom_settings.get("ROBOTSTXT_OBEY") is False
 
     def test_aggressive_crawl_settings(self):
         """Test Crawly with aggressive crawl settings."""
-        spider = Crawly(
-            start_urls="https://example.com",
-            aggressive_crawl=True
-        )
+        spider = Crawly(start_urls="https://example.com", aggressive_crawl=True)
         assert spider.custom_settings.get("CONCURRENT_REQUESTS") == 100
         assert spider.custom_settings.get("DOWNLOAD_DELAY") == 0.1
 
     def test_normal_crawl_settings(self):
         """Test Crawly with normal (non-aggressive) crawl settings."""
-        spider = Crawly(
-            start_urls="https://example.com",
-            aggressive_crawl=False
-        )
+        spider = Crawly(start_urls="https://example.com", aggressive_crawl=False)
         assert spider.custom_settings.get("CONCURRENT_REQUESTS") == 8
         assert spider.custom_settings.get("DOWNLOAD_DELAY") == 2
 
     def test_custom_user_agent(self):
         """Test Crawly with custom user agent."""
         custom_ua = "MyBot/1.0"
-        spider = Crawly(
-            start_urls="https://example.com",
-            custom_user_agent=custom_ua
-        )
+        spider = Crawly(start_urls="https://example.com", custom_user_agent=custom_ua)
         assert spider.custom_settings.get("USER_AGENT") == custom_ua
 
     def test_user_agent_types(self):
         """Test Crawly with different user agent types."""
         for ua_type in ["chrome", "firefox", "safari", "mobile", "bot"]:
-            spider = Crawly(
-                start_urls="https://example.com",
-                user_agent_type=ua_type
-            )
+            spider = Crawly(start_urls="https://example.com", user_agent_type=ua_type)
             assert spider.custom_settings.get("USER_AGENT") is not None
 
     def test_follow_subdomains_true(self):
         """Test Crawly with follow_subdomains enabled."""
-        spider = Crawly(
-            start_urls="https://subdomain.example.com",
-            follow_subdomains=True
-        )
+        spider = Crawly(start_urls="https://subdomain.example.com", follow_subdomains=True)
         # Should allow the parent domain
         assert any("example.com" in domain for domain in spider.allowed_domains)
 
     def test_strict_mode(self):
         """Test Crawly with strict mode enabled."""
-        spider = Crawly(
-            start_urls="https://example.com",
-            strict_mode=True
-        )
+        spider = Crawly(start_urls="https://example.com", strict_mode=True)
         assert spider.strict_mode is True
 
     def test_processed_urls_tracking(self):
         """Test Crawly with pre-existing processed URLs."""
         processed = {"https://example.com/page1", "https://example.com/page2"}
-        spider = Crawly(
-            start_urls="https://example.com",
-            processed_urls=processed
-        )
+        spider = Crawly(start_urls="https://example.com", processed_urls=processed)
         assert spider.processed_urls == processed
 
     def test_extract_domain_method(self):
@@ -136,7 +105,7 @@ class TestWebsiteItem:
         item["content"] = "Test content"
         item["title"] = "Test Title"
         item["timestamp"] = "2025-12-29"
-        
+
         assert item["loc"] == "https://example.com"
         assert item["content"] == "Test content"
         assert item["title"] == "Test Title"

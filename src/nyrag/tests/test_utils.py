@@ -1,4 +1,5 @@
 """Tests for the utils module."""
+
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -13,8 +14,8 @@ from nyrag.utils import (
     chunks,
     get_vespa_tls_config,
     is_vespa_cloud,
-    resolve_vespa_port,
     resolve_vespa_cloud_mtls_paths,
+    resolve_vespa_port,
 )
 
 
@@ -105,10 +106,13 @@ class TestGetVespaTlsConfig:
         assert ca is None
         assert verify is None
 
-    @patch.dict(os.environ, {
-        "VESPA_CLIENT_CERT": "/path/to/cert.pem",
-        "VESPA_CLIENT_KEY": "/path/to/key.pem"
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "VESPA_CLIENT_CERT": "/path/to/cert.pem",
+            "VESPA_CLIENT_KEY": "/path/to/key.pem",
+        },
+    )
     def test_with_cert_and_key(self):
         """Test with cert and key environment variables."""
         cert, key, ca, verify = get_vespa_tls_config()

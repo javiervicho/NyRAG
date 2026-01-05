@@ -104,7 +104,7 @@ class Config(BaseModel):
         }
 
     def get_llm_config(self) -> Dict[str, Any]:
-        """Get LLM configuration from llm_config or rag_params (legacy)."""
+        """Get LLM configuration from llm_config section."""
         if self.llm_config:
             return {
                 "llm_base_url": self.llm_config.base_url,
@@ -112,13 +112,10 @@ class Config(BaseModel):
                 "llm_api_key": self.llm_config.api_key,
             }
 
-        if self.rag_params is None:
-            return {}
-
         return {
-            "llm_base_url": self.rag_params.get("llm_base_url"),
-            "llm_model": self.rag_params.get("llm_model"),
-            "llm_api_key": self.rag_params.get("llm_api_key"),
+            "llm_base_url": None,
+            "llm_model": None,
+            "llm_api_key": None,
         }
 
     def is_web_mode(self) -> bool:

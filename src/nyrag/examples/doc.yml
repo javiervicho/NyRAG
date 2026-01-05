@@ -24,3 +24,10 @@ rag_params:
   chunk_overlap: 50
   distance_metric: angular        # Distance metric: angular, euclidean, etc. (default: angular)
   max_tokens: 8192
+
+# Optional: LLM configuration (works with any OpenAI-compatible API)
+# If not set, will use environment variables (LLM_BASE_URL, LLM_MODEL, LLM_API_KEY)
+llm_config:
+  base_url: https://openrouter.ai/api/v1
+  model: anthropic/claude-3.5-sonnet
+  api_key: your-openrouter-key

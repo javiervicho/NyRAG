@@ -32,6 +32,55 @@ DEFAULT_RANKING = "default"
 DEFAULT_SUMMARY = "top_k_chunks"
 
 
+def _get_settings_file_path() -> Path:
+    """Get the path to the user settings file in ~/.nyrag/settings.json"""
+    home = Path.home()
+    nyrag_dir = home / ".nyrag"
+    return nyrag_dir / "settings.json"
+
+
+def _load_user_settings() -> Dict[str, Any]:
+    """Load user settings from ~/.nyrag/settings.json"""
+    settings_file = _get_settings_file_path()
+
+    # Default settings
+    default_settings = {
+        "active_project": None,
+        "hits": 5,
+        "k": 3,
+        "query_k": 3,
+    }
+
+    if not settings_file.exists():
+        return default_settings
+
+    try:
+        with open(settings_file, "r") as f:
+            saved_settings = json.load(f)
+            # Merge with defaults to handle missing keys
+            return {**default_settings, **saved_settings}
+    except Exception as e:
+        logger = get_logger(__name__)
+        logger.warning(f"Failed to load user settings: {e}")
+        return default_settings
+
+
+def _save_user_settings(settings: Dict[str, Any]) -> None:
+    """Save user settings to ~/.nyrag/settings.json"""
+    settings_file = _get_settings_file_path()
+
+    # Create directory if it doesn't exist
+    settings_file.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with open(settings_file, "w") as f:
+            json.dump(settings, f, indent=2)
+    except Exception as e:
+        logger = get_logger(__name__)
+        logger.error(f"Failed to save user settings: {e}")
+        raise
+
+
 def _normalize_project_name(name: str) -> str:
     clean_name = name.replace("-", "").replace("_", "").lower()
     return f"nyrag{clean_name}"
@@ -472,6 +521,36 @@ async def select_project(project_name: str = Body(..., embed=True)):
         return {"status": "success", "settings": settings}
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.get("/user-settings")
+async def get_user_settings():
+    """Get user settings from ~/.nyrag/settings.json"""
+    return _load_user_settings()
+
+
+@app.post("/user-settings")
+async def update_user_settings(
+    active_project: Optional[str] = Body(None),
+    hits: Optional[int] = Body(None),
+    k: Optional[int] = Body(None),
+    query_k: Optional[int] = Body(None),
+):
+    """Update user settings in ~/.nyrag/settings.json"""
+    current_settings = _load_user_settings()
+
+    # Update only provided fields
+    if active_project is not None:
+        current_settings["active_project"] = active_project
+    if hits is not None:
+        current_settings["hits"] = hits
+    if k is not None:
+        current_settings["k"] = k
+    if query_k is not None:
+        current_settings["query_k"] = query_k
+
+    _save_user_settings(current_settings)
+    return {"status": "success", "settings": current_settings}
 
 
 @app.get("/crawl/status")

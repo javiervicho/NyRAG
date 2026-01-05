@@ -11,7 +11,10 @@ const saveBtn = document.getElementById("save-settings");
 
 settingsBtn.onclick = () => modal.style.display = "block";
 closeBtn.onclick = () => modal.style.display = "none";
-saveBtn.onclick = () => modal.style.display = "none";
+saveBtn.onclick = async () => {
+  await saveUserSettings();
+  modal.style.display = "none";
+};
 
 // Crawl Modal
 const crawlBtn = document.getElementById("crawl-btn");
@@ -842,6 +845,62 @@ projectSelector.onchange = async () => {
   await selectProject(projectSelector.value);
 };
 
+// Load user settings from backend
+async function loadUserSettings() {
+  try {
+    const res = await fetch("/user-settings");
+    const settings = await res.json();
+
+    // Apply settings to form inputs
+    if (settings.hits !== undefined) {
+      document.getElementById("hits").value = settings.hits;
+    }
+    if (settings.k !== undefined) {
+      document.getElementById("k").value = settings.k;
+    }
+    if (settings.query_k !== undefined) {
+      document.getElementById("query_k").value = settings.query_k;
+    }
+    if (settings.active_project) {
+      // Will be set after projects are loaded
+      setTimeout(() => {
+        const projectSelector = document.getElementById("project-selector");
+        if (projectSelector && projectSelector.querySelector(`option[value="${settings.active_project}"]`)) {
+          projectSelector.value = settings.active_project;
+          selectProject(settings.active_project);
+        }
+      }, 500);
+    }
+  } catch (e) {
+    console.error("Failed to load user settings", e);
+  }
+}
+
+// Save user settings to backend
+async function saveUserSettings() {
+  try {
+    const settings = {
+      active_project: document.getElementById("project-selector").value || null,
+      hits: parseInt(document.getElementById("hits").value) || 5,
+      k: parseInt(document.getElementById("k").value) || 3,
+      query_k: parseInt(document.getElementById("query_k").value) || 3,
+    };
+
+    const res = await fetch("/user-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings)
+    });
+
+    const data = await res.json();
+    if (data.status === "success") {
+      console.log("Settings saved successfully");
+    }
+  } catch (e) {
+    console.error("Failed to save user settings", e);
+  }
+}
+
 // Auto-resize textarea
 inputEl.addEventListener('input', function () {
   this.style.height = 'auto';
@@ -853,4 +912,5 @@ inputEl.addEventListener('input', function () {
 
 // Initial calls
 loadProjects();
+loadUserSettings();
 fetchStats();

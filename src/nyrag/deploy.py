@@ -301,7 +301,11 @@ def deploy_app_package(
                     if ensure_vespa_cli_target(tenant, application, instance):
                         logger.info(f"Vespa CLI target set to {tenant}.{application}.{instance}")
                     else:
-                        logger.debug("Skipping Vespa CLI target set (CLI not found or command failed)")
+                        logger.warning(
+                            f"Failed to set Vespa CLI target to {tenant}.{application}.{instance}. "
+                            "CLI commands may not work correctly. Ensure 'vespa' CLI is installed "
+                            "and you are authenticated with 'vespa auth login'."
+                        )
 
                 import inspect
 

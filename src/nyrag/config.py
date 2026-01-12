@@ -88,6 +88,15 @@ class DeployConfig(BaseModel):
     cloud_application: Optional[str] = None
     cloud_instance: Optional[str] = None
 
+    def _build_cloud_url(self) -> Optional[str]:
+        """Build Vespa Cloud URL from tenant, application, and instance."""
+        tenant = self.get_cloud_tenant()
+        application = self.get_cloud_application()
+        instance = self.get_cloud_instance()
+        if tenant and application and instance:
+            return f"https://{application}.{tenant}.{instance}.z.vespa-app.cloud"
+        return None
+
     def get_vespa_url(self) -> str:
         """Get Vespa URL from env var or default."""
         env_url = os.getenv("VESPA_URL")
@@ -95,11 +104,9 @@ class DeployConfig(BaseModel):
             return env_url
         if self.deploy_mode == "cloud":
             if self.cloud_tenant:
-                tenant = self.get_cloud_tenant()
-                application = self.get_cloud_application()
-                instance = self.get_cloud_instance()
-                if tenant and application and instance:
-                    return f"https://{application}.{tenant}.{instance}.z.vespa-app.cloud"
+                cloud_url = self._build_cloud_url()
+                if cloud_url:
+                    return cloud_url
             cli = get_vespa_cli_cloud_config()
             endpoint = cli.get("endpoint")
             if endpoint:
@@ -107,11 +114,9 @@ class DeployConfig(BaseModel):
                 if parsed.scheme and parsed.hostname:
                     return f"{parsed.scheme}://{parsed.hostname}"
                 return endpoint.rstrip("/")
-            tenant = self.get_cloud_tenant()
-            application = self.get_cloud_application()
-            instance = self.get_cloud_instance()
-            if tenant and application and instance:
-                return f"https://{application}.{tenant}.{instance}.z.vespa-app.cloud"
+            cloud_url = self._build_cloud_url()
+            if cloud_url:
+                return cloud_url
         return DEFAULT_VESPA_URL
 
     def get_vespa_port(self) -> int:

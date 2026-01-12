@@ -164,22 +164,33 @@ def _persist_config_with_endpoint(
     """Persist config to output conf.yml with resolved Vespa endpoint info.
 
     Uses deploy_result if available (from VespaCloud.get_mtls_endpoint() etc),
-    otherwise falls back to config methods.
+    but preserves user-configured vespa_url/vespa_port if explicitly set in
+    the original config file. Deploy result values are only used as fallbacks
+    when the user hasn't specified their own values.
     """
     import yaml
 
     conf_path = output_dir / "conf.yml"
     data: dict
+    original_data: dict = {}
     if config_path and Path(config_path).exists():
         with open(config_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
+            original_data = yaml.safe_load(f) or {}
+        data = original_data.copy()
     else:
         data = config.model_dump(exclude_none=True)
 
-    # Prefer deploy_result endpoints (from VespaCloud API) over constructed URLs
+    # Check if user explicitly set vespa_url/vespa_port in original config
+    user_set_url = "vespa_url" in original_data
+    user_set_port = "vespa_port" in original_data
+
+    # Prefer deploy_result endpoints (from VespaCloud API) over constructed URLs,
+    # but preserve user-configured values if explicitly set
     if deploy_result and deploy_result.vespa_url:
-        data["vespa_url"] = deploy_result.vespa_url.rstrip("/")
-        data["vespa_port"] = deploy_result.vespa_port or 443
+        if not user_set_url:
+            data["vespa_url"] = deploy_result.vespa_url.rstrip("/")
+        if not user_set_port:
+            data["vespa_port"] = deploy_result.vespa_port or 443
 
         # Store additional cloud endpoint info for reference
         if deploy_result.mtls_endpoint:
@@ -187,17 +198,19 @@ def _persist_config_with_endpoint(
         if deploy_result.token_endpoint:
             data["vespa_token_endpoint"] = deploy_result.token_endpoint
     else:
-        # Fallback to config methods
-        vespa_url = config.get_vespa_url()
-        vespa_port = config.get_vespa_port()
-        data["vespa_url"] = vespa_url
-        data["vespa_port"] = vespa_port
-
-        if config.is_local_deploy_mode():
-            if "VESPA_URL" not in os.environ and not config.vespa_url:
-                data["vespa_url"] = "http://localhost"
-            if "VESPA_PORT" not in os.environ and config.vespa_port is None:
-                data["vespa_port"] = DEFAULT_VESPA_LOCAL_PORT
+        # Fallback to config methods only if user hasn't set values
+        if not user_set_url:
+            vespa_url = config.get_vespa_url()
+            data["vespa_url"] = vespa_url
+            if config.is_local_deploy_mode():
+                if "VESPA_URL" not in os.environ and not config.vespa_url:
+                    data["vespa_url"] = "http://localhost"
+        if not user_set_port:
+            vespa_port = config.get_vespa_port()
+            data["vespa_port"] = vespa_port
+            if config.is_local_deploy_mode():
+                if "VESPA_PORT" not in os.environ and config.vespa_port is None:
+                    data["vespa_port"] = DEFAULT_VESPA_LOCAL_PORT
 
     with open(conf_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(data, f, sort_keys=False)
